@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, BackgroundTasks, Request
 from app.services.openai import OpenAIService, get_openai_service
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -9,11 +9,12 @@ router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
 
 @router.post("/process-image/")
-@limiter.limit("10/minute")  # Adjust rate limit as needed
+@limiter.limit("10/minute")
 async def process_image(
-    file: UploadFile = File(...),
+    request: Request,
     background_tasks: BackgroundTasks,
-    openai_service: OpenAIService = Depends(get_openai_service)
+    openai_service: OpenAIService = Depends(get_openai_service),
+    file: UploadFile = File(...)
 ):
     """
     Endpoint to process an image with rate limiting and optimized handling

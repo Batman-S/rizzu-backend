@@ -1,0 +1,29 @@
+name: rizzu-backend
+services:
+  - name: web
+    github:
+      branch: main
+      deploy_on_push: true
+    build_command: pip install -r requirements.txt
+    run_command: uvicorn app.main:app --host 0.0.0.0 --port 8080
+    instance_count: 3
+    instance_size_slug: professional-xs
+    envs:
+      - key: OPENAI_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: REDIS_URL
+        scope: RUN_TIME
+        value: ${redis.DATABASE_URL}
+      - key: MAX_WORKERS
+        scope: RUN_TIME
+        value: "4"
+      - key: RATE_LIMIT
+        scope: RUN_TIME
+        value: "10/minute"
+
+databases:
+  - name: redis
+    engine: REDIS
+    version: "6"
+    size: db-s-1vcpu-1gb 

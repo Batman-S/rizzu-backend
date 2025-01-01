@@ -3,7 +3,11 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from app.api.v1.endpoints import process_image
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
 import uvicorn
+from app.core.config import settings
+import os
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -25,12 +29,26 @@ async def add_process_time_header(request: Request, call_next):
     response = await call_next(request)
     return response
 
+@app.on_event("startup")
+async def startup():
+    FastAPICache.init(InMemoryBackend(), prefix="fastapi-cache")
+
+@app.on_event("shutdown")
+async def shutdown():
+    await FastAPICache.clear()
+
+# Health check for DigitalOcean
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}
+
 if __name__ == "__main__":
+    port = int(os.getenv("PORT", 8080))
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
-        workers=4,  # Adjust based on CPU cores
-        loop="uvloop",  # Faster event loop
-        http="httptools",  # Faster HTTP
+        port=port,
+        workers=settings.max_workers,
+        loop="uvloop",
+        http="httptools",
     )
